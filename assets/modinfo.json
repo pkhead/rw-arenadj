@@ -1,0 +1,10 @@
+{
+    "id": "pkhead.arenatunes",
+    "name": "Customizable Arena Tunes",
+    "version": "1.0.0",
+    "target_game_version": "v1.9",
+    "authors": "pkhead",
+    "description": "Allows you to customize what music gets played in Arena mode",
+    "tags": ["Cosmetics", "Game Mechanics"],
+    "checksum_override_version": false
+}
