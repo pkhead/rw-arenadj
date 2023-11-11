@@ -6,15 +6,24 @@ using Music;
 using UnityEngine;
 using System.IO;
 using RWCustom;
+using System.Collections.Generic;
 
 namespace ArenaTunes
 {
     public partial class ModMain : BaseUnityPlugin
     {
-        private const string CUSTOM_PREFIX = "arenacustom-";
+        struct TrackInfo
+        {
+            public string fileName;
+            public AudioType audioType;
+        };
+
+        private const string CUSTOM_PREFIX = "[CUSTOM] ";
+        private Dictionary<string, TrackInfo> trackInfoDict = new();
 
         private void MusicHooks()
         {
+            // custom song loading
             IL.Music.MusicPiece.SubTrack.Update += (il) =>
             {
                 try
@@ -40,19 +49,23 @@ namespace ArenaTunes
                     {
                         logger.LogDebug("delegate called");
 
-                        if (!GetCustomSong(self.trackName, out string fileName))
+                        if (!GetCustomSong(self.trackName, out TrackInfo trackInfo))
                             return false;
 
-                        Debug.Log("loading custom arena track!");
+                        logger.LogDebug("loading custom arena track!");
 
                         // %USERPROFILE%\Documents on Windows
                         // home directory on Unix/Linux
-                        string filePath = Path.Combine(Options.FolderPath.Value, fileName);
+                        string filePath = Path.Combine(Options.FolderPath.Value, trackInfo.fileName);
+                        logger.LogDebug("Read file://" + filePath);
 
                         if (!File.Exists(filePath))
+                        {
+                            logger.LogDebug("file did not exist");
                             return false;
+                        }
 
-                        self.source.clip = AssetManager.SafeWWWAudioClip("file://" + filePath, false, true, AudioType.OGGVORBIS);
+                        self.source.clip = AssetManager.SafeWWWAudioClip("file://" + filePath, false, true, trackInfo.audioType);
                         self.isStreamed = true;
 
                         Debug.Log("loaded custom arena track!");
@@ -81,20 +94,90 @@ namespace ArenaTunes
                 }
                 catch (Exception e)
                 {
-                    logger.LogError(e);
+                    logger.LogFatal(e);
+                }
+            };
+
+            // hijack DJ
+            On.Music.MultiplayerDJ.ctor += (On.Music.MultiplayerDJ.orig_ctor orig, MultiplayerDJ self, MusicPlayer player) =>
+            {
+                orig(self, player);
+                trackInfoDict.Clear();
+
+                // get custom songs
+                if (!Directory.Exists(Options.FolderPath.Value))
+                    return;
+                    
+                List<string> customSongs = new();
+
+                foreach (var filePath in Directory.EnumerateFiles(Options.FolderPath.Value))
+                {
+                    TrackInfo trackInfo = new()
+                    {
+                        fileName = Path.GetFileName(filePath)
+                    };
+
+                    logger.LogDebug("Extension: " + Path.GetExtension(filePath));
+
+                    switch (Path.GetExtension(filePath))
+                    {
+                        case ".ogg":
+                            trackInfo.audioType = AudioType.OGGVORBIS;
+                            break;
+
+                        case ".mp3": case ".mpeg":
+                            trackInfo.audioType = AudioType.MPEG;
+                            break;
+
+                        case ".wav":
+                            trackInfo.audioType = AudioType.WAV;
+                            break;
+
+                        default:
+                            continue; // file extension unknown, skip this file
+                    }
+                    
+                    string nameInList = CUSTOM_PREFIX + Path.GetFileNameWithoutExtension(filePath);
+                    trackInfoDict.Add(nameInList, trackInfo);
+                    customSongs.Add(nameInList);
+                }
+
+                // log all the found sounds
+                foreach (string filePath in customSongs)
+                {
+                    logger.LogDebug("Found " + filePath);
+                }
+
+                if (customSongs.Count > 0)
+                {
+                    // add to music playlist
+                    if (Options.CustomOnly.Value)
+                    {
+                        // replace list if Custom Only
+                        self.availableSongs = customSongs.ToArray();
+                    }
+                    else
+                    {
+                        // append to list
+                        var newList = new string[self.availableSongs.Length + customSongs.Count];
+                        self.availableSongs.CopyTo(newList, 0);
+                        customSongs.CopyTo(newList, self.availableSongs.Length);
+
+                        self.availableSongs = newList;
+                    }
                 }
             };
         }
 
-        private bool GetCustomSong(string trackName, out string fileName)
+        private bool GetCustomSong(string trackName, out TrackInfo trackInfo)
         {
             if (trackName.Substring(0, CUSTOM_PREFIX.Length) == CUSTOM_PREFIX)
             {
-                fileName = trackName.Substring(CUSTOM_PREFIX.Length);
+                trackInfo = trackInfoDict[trackName];
                 return true;
             }
 
-            fileName = "";
+            trackInfo = new();
             return false;
         }
     }
