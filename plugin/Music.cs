@@ -47,8 +47,6 @@ namespace ArenaTunes
                     cursor.Emit(OpCodes.Ldarg_0);
                     cursor.EmitDelegate((MusicPiece.SubTrack self) =>
                     {
-                        logger.LogDebug("delegate called");
-
                         if (!GetCustomSong(self.trackName, out TrackInfo trackInfo))
                             return false;
 
@@ -57,8 +55,7 @@ namespace ArenaTunes
                         // %USERPROFILE%\Documents on Windows
                         // home directory on Unix/Linux
                         string filePath = Path.Combine(Options.FolderPath.Value, trackInfo.fileName);
-                        logger.LogDebug("Read file://" + filePath);
-
+                        
                         if (!File.Exists(filePath))
                         {
                             logger.LogDebug("file did not exist");
@@ -116,9 +113,7 @@ namespace ArenaTunes
                     {
                         fileName = Path.GetFileName(filePath)
                     };
-
-                    logger.LogDebug("Extension: " + Path.GetExtension(filePath));
-
+                    
                     switch (Path.GetExtension(filePath))
                     {
                         case ".ogg":

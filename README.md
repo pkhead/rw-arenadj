@@ -1,7 +1,7 @@
 # Rain World Custom Arena DJ
 A Rain World mod that allows you to play your own music in Arena mode. Go to the Remix config to see and change the folder where the mod will load custom music from.
 
-It's best that the volume of your music doesn't exceed -8 dB, so that the song doesn't sound too loud compared to the Rain World music.
+The file name of each track you upload should follow the format of "\[Track Author\] - \[Track Name\]". In addition, it's best that the volume of your music doesn't exceed -8 dB, so that the song doesn't sound too loud compared to the Rain World music.
 
 ## Building
 This project will reference assemblies from the Rain World install directory. I've set some

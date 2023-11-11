@@ -45,7 +45,7 @@ namespace ArenaTunes
             InitBuilder(1);
 
             AddTab("General");
-            Title("Arena Mix Config");
+            Title("Arena DJ");
             folderTextbox = AddTextbox("Music Folder", "The path to the folder containing the custom music", FolderPath, 400);
             existsLabel = AddLabel("Folder does not exist!");
             AddCheckbox("Custom only", "Only play custom music registered with this mod", CustomOnly);
