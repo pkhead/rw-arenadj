@@ -10,7 +10,7 @@ using BepInEx;
 
 namespace ArenaTunes
 {
-    [BepInPlugin(MOD_ID, "Arena Mix", VERSION)]
+    [BepInPlugin(MOD_ID, "Custom Arena DJ", VERSION)]
     public partial class ModMain : BaseUnityPlugin
     {
         public const string MOD_ID = "pkhead.arenatunes";
