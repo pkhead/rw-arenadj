@@ -20,16 +20,14 @@ namespace ArenaTunes
         private bool isInit = false;
 
         public BepInEx.Logging.ManualLogSource logger;
+        public Options options;
 
         public ModMain() { }
 
         public void OnEnable()
         {
             logger = BepInEx.Logging.Logger.CreateLogSource("Arena Tunes");
-
-            logger.LogDebug("before");
-            MusicHooks();
-            logger.LogDebug("help");
+            options = new Options(this);
 
             On.RainWorld.OnModsInit += (On.RainWorld.orig_OnModsInit orig, RainWorld self) =>
             {
@@ -39,9 +37,9 @@ namespace ArenaTunes
 
                 try
                 {
-                    logger.LogDebug("setting registed OI");
-                    MachineConnector.SetRegisteredOI(MOD_ID, Options.instance);
-                    logger.LogDebug("SetRegisteredOI");
+                    MachineConnector.SetRegisteredOI(MOD_ID, options);
+
+                    MusicHooks();
                 }
                 catch (Exception e)
                 {

@@ -7,28 +7,37 @@ namespace ArenaTunes
 {
     public class Options : OptionInterface
     {
-        public static Options instance = new();
+        private readonly BepInEx.Logging.ManualLogSource logger;
 
-        public static Configurable<string> FolderPath = instance.config.Bind(
-            key: "folderPath",
-            defaultValue: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "pkhead.arenatunes"),
-            info: new ConfigurableInfo(
-                "The path to the folder containing custom music"
-            )
-        );
+        public static Configurable<string> FolderPath = null;
+        public static Configurable<bool> CustomOnly = null;
 
-        public static Configurable<bool> CustomOnly = instance.config.Bind(
-            key: "customOnly",
-            defaultValue: false,
-            info: new ConfigurableInfo(
-                "Only play custom music registered with this mod",
-                null,
-                "",
-                "CustomOnly"
-            )
-        );
+        public Options(ModMain mod)
+        {
+            logger = mod.logger;
 
-        public Options() {}
+            FolderPath = config.Bind(
+                key: "folderPath",
+                defaultValue: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "RWArenaMusic"),
+                info: new ConfigurableInfo(
+                    "The path to the folder containing custom music"
+                )
+            );
+
+            CustomOnly = config.Bind(
+                key: "customOnly",
+                defaultValue: false,
+                info: new ConfigurableInfo(
+                    "Only play custom music registered with this mod",
+                    null,
+                    "",
+                    "CustomOnly"
+                )
+            );
+        }
+
+        private OpLabel existsLabel = null;
+        private OpTextBox folderTextbox = null;
 
         public override void Initialize()
         {
@@ -37,8 +46,31 @@ namespace ArenaTunes
 
             AddTab("General");
             Title("Arena Mix Config");
-            AddTextbox("Music Folder", "The path to the folder containing the custom music", FolderPath, 400);
+            folderTextbox = AddTextbox("Music Folder", "The path to the folder containing the custom music", FolderPath, 400);
+            existsLabel = AddLabel("Folder does not exist!");
             AddCheckbox("Custom only", "Only play custom music registered with this mod", CustomOnly);
+
+            CheckExists();
+        }
+
+        public override void Update()
+        {
+            base.Update();
+            CheckExists();
+        }
+
+        private void CheckExists()
+        {
+            if (existsLabel == null || folderTextbox == null) return;
+            
+            if (Directory.Exists(folderTextbox.value))
+            {
+                existsLabel.Hide();
+            }
+            else
+            {
+                existsLabel.Show();
+            }
         }
 
         #region UI Builder functions
@@ -87,7 +119,15 @@ namespace ArenaTunes
             Tabs[tabIndex].AddItems(label);
         }
 
-        private void AddTextbox(string text, string desc, Configurable<string> config, int width)
+        private OpLabel AddLabel(string text)
+        {
+            var label = new OpLabel(curX, curY, text, false);
+            Tabs[tabIndex].AddItems(label);
+            curY -= label.size.y + ITEM_MARGIN_Y;
+            return label;
+        }
+
+        private OpTextBox AddTextbox(string text, string desc, Configurable<string> config, int width)
         {
             var textbox = new OpTextBox(config, new Vector2(curX, curY), width) {
                 description = desc
@@ -96,8 +136,10 @@ namespace ArenaTunes
             var label = new OpLabel(curX + textbox.size.x + LABEL_MARGIN_X, curY + (textbox.size.y - LabelTest.LineHeight(false)) / 2, text, false);
             Tabs[tabIndex].AddItems(textbox, label);
             curY -= textbox.size.y + ITEM_MARGIN_Y;
+            return textbox;
         }
-        private void AddSlider(string text, string desc, Configurable<int> config, int width)
+
+        private OpSlider AddSlider(string text, string desc, Configurable<int> config, int width)
         {
             var slider = new OpSlider(config, new Vector2(curX, curY), width) {
                 description = desc
@@ -106,9 +148,10 @@ namespace ArenaTunes
             var label = new OpLabel(curX + slider.size.x + LABEL_MARGIN_X, curY + (slider.size.y - LabelTest.LineHeight(false)) / 2, text, false);
             Tabs[tabIndex].AddItems(slider, label);
             curY -= slider.size.y + ITEM_MARGIN_Y;
+            return slider;
         }
 
-        private void AddCheckbox(string text, string desc, Configurable<bool> config)
+        private OpCheckBox AddCheckbox(string text, string desc, Configurable<bool> config)
         {
             var checkbox = new OpCheckBox(config, curX, curY) {
                 description = desc
@@ -117,6 +160,15 @@ namespace ArenaTunes
             var label = new OpLabel(curX + checkbox.size.x + LABEL_MARGIN_X, curY + (checkbox.size.y - LabelTest.LineHeight(false)) / 2, text, false);
             Tabs[tabIndex].AddItems(checkbox, label);
             curY -= checkbox.size.y + ITEM_MARGIN_Y;
+            return checkbox;
+        }
+
+        private OpSimpleButton AddSimpleButton(string text, int width)
+        {
+            var btn = new OpSimpleButton(new Vector2(curX, curY), new Vector2(width, ITEM_HEIGHT), text);
+            Tabs[tabIndex].AddItems(btn);
+            curY -= btn.size.y + ITEM_MARGIN_Y;
+            return btn;
         }
 
         #endregion

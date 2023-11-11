@@ -47,8 +47,7 @@ namespace ArenaTunes
 
                         // %USERPROFILE%\Documents on Windows
                         // home directory on Unix/Linux
-                        string folderPath = Options.FolderPath.Value;
-                        string filePath = Path.Combine(folderPath, fileName);
+                        string filePath = Path.Combine(Options.FolderPath.Value, fileName);
 
                         if (!File.Exists(filePath))
                             return false;
@@ -77,9 +76,8 @@ namespace ArenaTunes
 
                     cursor.GotoLabel(exitBranch);
                     cursor.MarkLabel(exitLabel);
-                    
+
                     logger.LogDebug("IL injection success!");
-                    logger.LogDebug(il.ToString());
                 }
                 catch (Exception e)
                 {
