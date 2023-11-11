@@ -1,12 +1,28 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
-    <LangVersion>11</LangVersion>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<LangVersion>11</LangVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Reference Include="$(RainWorldDir)/BepInEx/core/BepInEx.dll">
+	<ItemGroup>
+		<Reference Include="$(RainWorldDir)/BepInEx/core/BepInEx.dll">
+			<Private>true</Private>
+		</Reference>
+
+		<Reference Include="$(RainWorldDir)/BepInEx/core/MonoMod.dll">
+			<Private>true</Private>
+		</Reference>
+
+		<Reference Include="$(RainWorldDir)/BepInEx/core/MonoMod.Utils.dll">
+			<Private>true</Private>
+		</Reference>
+
+		<Reference Include="$(RainWorldDir)/BepInEx/core/Mono.Cecil.dll">
+			<Private>true</Private>
+		</Reference>
+
+		<Reference Include="$(RainWorldDir)/BepInEx/core/MonoMod.RuntimeDetour.dll">
 			<Private>true</Private>
 		</Reference>
 
@@ -26,12 +42,8 @@
 			<Private>true</Private>
 		</Reference>
 		
-		<Reference Include="$(RainWorldDir)/RainWorld_Data/Managed/UnityEngine.InputModule.dll">
+		<Reference Include="$(RainWorldDir)/RainWorld_Data/Managed/UnityEngine.AudioModule.dll">
 			<Private>true</Private>
 		</Reference>
-
-		<Reference Include="$(RainWorldDir)/RainWorld_Data/Managed/UnityEngine.InputLegacyModule.dll">
-			<Private>true</Private>
-		</Reference>
-  </ItemGroup>
+	</ItemGroup>
 </Project>
