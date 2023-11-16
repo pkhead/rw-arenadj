@@ -32,12 +32,12 @@ namespace ArenaTunes
             On.RainWorld.OnModsInit += (On.RainWorld.orig_OnModsInit orig, RainWorld self) =>
             {
                 orig(self);
-                if (isInit) return;
-                isInit = true;
 
                 try
                 {
                     MachineConnector.SetRegisteredOI(MOD_ID, options);
+                    if (isInit) return;
+                    isInit = true;
 
                     MusicHooks();
                 }

@@ -18,6 +18,8 @@ namespace ArenaTunes
             public AudioType audioType;
         };
 
+        // this prefix is used to differentiate custom songs
+        // from vanilla songs in the playlist
         private const string CUSTOM_PREFIX = "[CUSTOM] ";
         private Dictionary<string, TrackInfo> trackInfoDict = new();
 
@@ -52,8 +54,6 @@ namespace ArenaTunes
 
                         logger.LogDebug("loading custom arena track!");
 
-                        // %USERPROFILE%\Documents on Windows
-                        // home directory on Unix/Linux
                         string filePath = Path.Combine(Options.FolderPath.Value, trackInfo.fileName);
                         
                         if (!File.Exists(filePath))
