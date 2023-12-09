@@ -11,6 +11,7 @@ namespace ArenaTunes
 
         public static Configurable<string> FolderPath = null;
         public static Configurable<bool> CustomOnly = null;
+        public static Configurable<bool> AuthorName = null;
 
         public Options(ModMain mod)
         {
@@ -20,7 +21,7 @@ namespace ArenaTunes
                 key: "folderPath",
                 defaultValue: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "RWArenaMusic"),
                 info: new ConfigurableInfo(
-                    "The path to the folder containing custom music"
+                    "The path to the folder containing custom tracks"
                 )
             );
 
@@ -28,10 +29,21 @@ namespace ArenaTunes
                 key: "customOnly",
                 defaultValue: false,
                 info: new ConfigurableInfo(
-                    "Only play custom music registered with this mod",
+                    "Only play custom tracks registered with this mod",
                     null,
                     "",
                     "CustomOnly"
+                )
+            );
+
+            AuthorName = config.Bind(
+                key: "authorName",
+                defaultValue: false,
+                info: new ConfigurableInfo(
+                    "Show author name when playing a custom track",
+                    null,
+                    "",
+                    "AuthorName"
                 )
             );
         }
@@ -46,10 +58,11 @@ namespace ArenaTunes
 
             AddTab("General");
             Title("Arena DJ");
-            folderTextbox = AddTextbox("Music Folder", "The path to the folder containing the custom music", FolderPath, 400);
+            folderTextbox = AddTextbox("Music Folder", "The path to the folder containing the custom tracks", FolderPath, 400);
             existsLabel = AddLabel("Folder does not exist!");
-            AddCheckbox("Custom only", "Only play custom music registered with this mod", CustomOnly);
-
+            AddCheckbox("Custom only", "Only play custom tracks registered with this mod", CustomOnly);
+            AddCheckbox("Author Name", "Show author name when playing a custom track", AuthorName);
+            
             CheckExists();
         }
 

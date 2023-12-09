@@ -162,10 +162,36 @@ namespace ArenaTunes
                     }
                 }
             };
+
+            // display author name if it is a custom song
+            On.Music.MultiplayerDJ.PlayNext += (On.Music.MultiplayerDJ.orig_PlayNext orig, Music.MultiplayerDJ self, float fadeInTime) =>
+            {
+                if (!Options.AuthorName.Value)
+                {
+                    orig(self, fadeInTime);
+                    return;
+                }
+                
+                if (self.playList.Count < 1)
+                {
+                    self.ShufflePlaylist();
+                }
+
+                string trackName = self.playList[0];
+                orig(self, fadeInTime);
+
+                // if this is a custom song,
+                // show all text after the custom prefix
+                if (GetCustomSong(trackName, out _))
+                {
+                    self.announceSong = trackName.Substring(CUSTOM_PREFIX.Length);
+                }
+            };
         }
 
         private bool GetCustomSong(string trackName, out TrackInfo trackInfo)
         {
+            // a track is a custom track if it starts with the CUSTOM_PREFIX
             if (trackName.Substring(0, CUSTOM_PREFIX.Length) == CUSTOM_PREFIX)
             {
                 trackInfo = trackInfoDict[trackName];
