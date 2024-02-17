@@ -14,6 +14,9 @@ class TrackButton : ButtonTemplate
     private readonly Menu.Remix.MixedUI.GlowGradient glowGradient;
     private Vector2 relativePos;
 
+    private float labelAlpha = 0f;
+    private float prevLabelAlpha = 0f;
+
     public TrackButton(Menu.Menu menu, MenuObject owner, string displayText, string signalText, Vector2 pos, Vector2 size)
         : base(menu, owner, pos, size)
     {
@@ -23,7 +26,7 @@ class TrackButton : ButtonTemplate
 
         labelColor = Menu.Menu.MenuColor(Menu.Menu.MenuColors.MediumGrey);
         menuLabel = new MenuLabel(menu, this, displayText, Vector2.zero, size, false);
-        menuLabel.label.alpha = 0f;
+        menuLabel.label.alpha = labelAlpha;
         subObjects.Add(menuLabel);
         
         glowGradient = new Menu.Remix.MixedUI.GlowGradient(Container, Vector2.zero, size, 0.5f)
@@ -35,6 +38,8 @@ class TrackButton : ButtonTemplate
     public override void Update()
     {
         base.Update();
+        prevLabelAlpha = labelAlpha;
+        buttonBehav.greyedOut = labelAlpha < 0.2f; // disable button if outside of scroll list bounds
         buttonBehav.Update();
 
         // fade out if this button is on edge
@@ -47,7 +52,7 @@ class TrackButton : ButtonTemplate
         {
             targetAlpha = Custom.LerpMap(relativePos.y, listOwner.ViewMax - size.y, listOwner.ViewMax, 1f, 0f);
         }
-        menuLabel.label.alpha = (targetAlpha - menuLabel.label.alpha) * 0.5f;
+        labelAlpha += (targetAlpha - labelAlpha) * 0.5f;
         
         // update position
         pos = relativePos + Vector2.down * (owner as TrackList).ScrollOffset;
@@ -57,7 +62,9 @@ class TrackButton : ButtonTemplate
     {
         base.GrafUpdate(timeStacker);
 
-        menuLabel.label.color = InterpColor(timeStacker, labelColor);        
+        menuLabel.label.color = InterpColor(timeStacker, labelColor);
+        menuLabel.label.alpha = Mathf.Lerp(prevLabelAlpha, labelAlpha, timeStacker);
+
         float buttonAlpha = 0.5f + 0.5f * Mathf.Sin(Mathf.Lerp(buttonBehav.lastSin, buttonBehav.sin, timeStacker) / 30f * 3.1415927f * 2f);
         buttonAlpha *= buttonBehav.sizeBump;
         glowGradient.alpha = buttonAlpha;
@@ -135,7 +142,8 @@ class TrackList : RectangularMenuObject
 
         if (MouseOver && menu.manager.menuesMouseMode && menu.mouseScrollWheelMovement != 0)
         {
-            scrollInt -= menu.mouseScrollWheelMovement * 2;
+            Debug.Log(menu.mouseScrollWheelMovement);
+            scrollInt -= menu.mouseScrollWheelMovement * 4;
         }
 
         // clamp scroll
@@ -167,7 +175,8 @@ class TrackList : RectangularMenuObject
 
 class PlaylistConfigMenu : PositionedMenuObject
 {
-    private TrackList trackList;
+    private TrackList availableTracksList;
+    private TrackList activeTracksList;
 
     public PlaylistConfigMenu(PlaylistConfigDialog menu, MenuObject owner, Vector2 pos) : base(menu, owner, pos)
     {
@@ -194,22 +203,29 @@ class PlaylistConfigMenu : PositionedMenuObject
         ));
 
         // available songs track list
-        subObjects.Add(trackList = new(
+        subObjects.Add(availableTracksList = new(
             menu: this.menu,
             owner: this,
-            pos: new Vector2(200f, 100f),
+            pos: new Vector2(463f, 100f),
+            size: new Vector2(200f, 400f)
+        ));
+
+        subObjects.Add(activeTracksList = new(
+            menu: this.menu,
+            owner: this,
+            pos: new Vector2(703f, 100f),
             size: new Vector2(200f, 400f)
         ));
 
         for (int i = 0; i < 10; i++)
         {
-            trackList.AddTrack("Weuyon");
-            trackList.AddTrack("Mud Pits");
-            trackList.AddTrack("Deep Energy");
-            trackList.AddTrack("Kayava");
-            trackList.AddTrack("Halcyon Memories");
-            trackList.AddTrack("Floes");
-            trackList.AddTrack("Random Gods");
+            activeTracksList.AddTrack("Weuyon");
+            activeTracksList.AddTrack("Mud Pits");
+            activeTracksList.AddTrack("Deep Energy");
+            activeTracksList.AddTrack("Kayava");
+            activeTracksList.AddTrack("Halcyon Memories");
+            activeTracksList.AddTrack("Floes");
+            activeTracksList.AddTrack("Random Gods");
         }
     }
 
