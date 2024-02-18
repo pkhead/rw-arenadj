@@ -12,16 +12,9 @@ namespace ArenaTunes
 {
     public partial class ModMain : BaseUnityPlugin
     {
-        struct TrackInfo
-        {
-            public string fileName;
-            public AudioType audioType;
-        };
-
         // this prefix is used to differentiate custom songs
         // from vanilla songs in the playlist
         private const string CUSTOM_PREFIX = "[CUSTOM] ";
-        private Dictionary<string, TrackInfo> trackInfoDict = new();
 
         private void MusicHooks()
         {

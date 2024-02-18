@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Menu;
 using UnityEngine;
 
@@ -17,9 +18,15 @@ class PlaylistConfigDialog : Dialog
     public Menu.Remix.MenuTabWrapper tabWrapper;
     private readonly PlaylistConfigMenu slidingMenu;
 
-    public PlaylistConfigDialog(ProcessManager manager) : base(manager)
+    public PlaylistConfigDialog(ProcessManager manager, string[] availableTracks, List<string> activeTracks) : base(manager)
     {
-        slidingMenu = new PlaylistConfigMenu(this, pages[0], new Vector2(0f, manager.rainWorld.options.ScreenSize.y + 100f));
+        slidingMenu = new PlaylistConfigMenu(
+            menu: this,
+            owner: pages[0],
+            pos: new Vector2(0f, manager.rainWorld.options.ScreenSize.y + 100f),
+            availableTracks: availableTracks,
+            activeTracks: activeTracks
+        );
         pages[0].subObjects.Add(slidingMenu);
     }
 

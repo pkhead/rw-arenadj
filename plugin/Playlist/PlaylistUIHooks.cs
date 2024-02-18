@@ -46,7 +46,7 @@ public partial class ModMain : BaseUnityPlugin
                 self.PlaySound(SoundID.MENU_Button_Standard_Button_Pressed);
 
                 Vector2 dialogPos = new(1000f - (1366f - self.manager.rainWorld.options.ScreenSize.x) / 2f, self.manager.rainWorld.screenSize.y - 100f);
-                var dialog = new PlaylistConfigDialog(self.manager);
+                var dialog = new PlaylistConfigDialog(self.manager, availableTracks, activeTracks);
                 self.manager.ShowDialog(dialog);
             }
             else

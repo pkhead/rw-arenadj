@@ -1,4 +1,5 @@
-using System;
+using System.Collections.Generic;
+using System.Linq;
 using Menu;
 using RWCustom;
 using UnityEngine;
@@ -175,10 +176,19 @@ class TrackList : RectangularMenuObject
 
 class PlaylistConfigMenu : PositionedMenuObject
 {
-    private TrackList availableTracksList;
-    private TrackList activeTracksList;
+    private readonly TrackList availableTracksUi;
+    private readonly TrackList activeTracksUi;
 
-    public PlaylistConfigMenu(PlaylistConfigDialog menu, MenuObject owner, Vector2 pos) : base(menu, owner, pos)
+    private readonly string[] availableTracks;
+    private readonly List<string> activeTracks;
+
+    public PlaylistConfigMenu(
+        PlaylistConfigDialog menu, MenuObject owner,
+        Vector2 pos,
+        string[] availableTracks,
+        List<string> activeTracks
+    )
+        : base(menu, owner, pos)
     {
         menu.tabWrapper = new Menu.Remix.MenuTabWrapper(menu, this);
         subObjects.Add(menu.tabWrapper);
@@ -203,29 +213,26 @@ class PlaylistConfigMenu : PositionedMenuObject
         ));
 
         // available songs track list
-        subObjects.Add(availableTracksList = new(
+        subObjects.Add(availableTracksUi = new(
             menu: this.menu,
             owner: this,
             pos: new Vector2(463f, 100f),
             size: new Vector2(200f, 400f)
         ));
 
-        subObjects.Add(activeTracksList = new(
+        subObjects.Add(activeTracksUi = new(
             menu: this.menu,
             owner: this,
             pos: new Vector2(703f, 100f),
             size: new Vector2(200f, 400f)
         ));
 
-        for (int i = 0; i < 10; i++)
+        foreach (var trackName in availableTracks)
         {
-            activeTracksList.AddTrack("Weuyon");
-            activeTracksList.AddTrack("Mud Pits");
-            activeTracksList.AddTrack("Deep Energy");
-            activeTracksList.AddTrack("Kayava");
-            activeTracksList.AddTrack("Halcyon Memories");
-            activeTracksList.AddTrack("Floes");
-            activeTracksList.AddTrack("Random Gods");
+            if (activeTracks.Contains(trackName))
+                activeTracksUi.AddTrack(trackName);
+            else
+                availableTracksUi.AddTrack(trackName);
         }
     }
 
