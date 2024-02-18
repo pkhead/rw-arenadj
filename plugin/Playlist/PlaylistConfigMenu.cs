@@ -18,15 +18,19 @@ class TrackButton : ButtonTemplate
     private float labelAlpha = 0f;
     private float prevLabelAlpha = 0f;
 
-    public TrackButton(Menu.Menu menu, MenuObject owner, string displayText, string signalText, Vector2 pos, Vector2 size)
+    public readonly string TrackName;
+    public ref Vector2 RelativePos { get => ref relativePos; }
+
+    public TrackButton(Menu.Menu menu, MenuObject owner, string trackName, string signalText, Vector2 pos, Vector2 size)
         : base(menu, owner, pos, size)
     {
         listOwner = owner as TrackList;
         relativePos = pos;
         this.signalText = signalText;
+        TrackName = trackName;
 
         labelColor = Menu.Menu.MenuColor(Menu.Menu.MenuColors.MediumGrey);
-        menuLabel = new MenuLabel(menu, this, displayText, Vector2.zero, size, false);
+        menuLabel = new MenuLabel(menu, this, trackName, Vector2.zero, size, false);
         menuLabel.label.alpha = labelAlpha;
         subObjects.Add(menuLabel);
         
@@ -34,6 +38,12 @@ class TrackButton : ButtonTemplate
         {
             color = labelColor.rgb
         };
+    }
+
+    public override void RemoveSprites()
+    {
+        base.RemoveSprites();
+        glowGradient.sprite.RemoveFromContainer();
     }
 
     public override void Update()
@@ -53,7 +63,7 @@ class TrackButton : ButtonTemplate
         {
             targetAlpha = Custom.LerpMap(relativePos.y, listOwner.ViewMax - size.y, listOwner.ViewMax, 1f, 0f);
         }
-        labelAlpha += (targetAlpha - labelAlpha) * 0.5f;
+        labelAlpha += (targetAlpha - labelAlpha) * 0.4f;
         
         // update position
         pos = relativePos + Vector2.down * (owner as TrackList).ScrollOffset;
@@ -122,19 +132,52 @@ class TrackList : RectangularMenuObject
         Container.AddChild(sideBars[1]);
     }
 
-    public void AddTrack(string trackName)
+    public override void RemoveSprites()
+    {
+        base.RemoveSprites();
+        sideBars[0].RemoveFromContainer();
+        sideBars[1].RemoveFromContainer();
+    }
+
+    public void AddTrack(string trackName, string signalText)
     {
         var btn = new TrackButton(
             menu: menu,
             owner: this,
-            displayText: trackName,
-            signalText: "CLICK",
+            trackName: trackName,
+            signalText: signalText,
             pos: new Vector2(0f, nextButtonPos),
             size: new Vector2(size.x, ItemHeight)
         );
         nextButtonPos += btn.size.y;
         subObjects.Add(btn);
         itemCount++;
+    }
+
+    public void RemoveTrack(string trackName)
+    {
+        float shiftY = 0.0f;
+
+        for (int i = 0; i < subObjects.Count;)
+        {
+            if (subObjects[i] is TrackButton trackButton)
+            {
+                if (trackButton.TrackName == trackName)
+                {
+                    shiftY = trackButton.size.y;
+                    subObjects.RemoveAt(i);
+                    trackButton.RemoveSprites();
+                    page.selectables.Remove(trackButton);
+                    nextButtonPos -= trackButton.size.y;
+                    itemCount--;
+                }
+                else
+                {
+                    trackButton.RelativePos.y -= shiftY;
+                    i++;
+                }
+            }
+        }
     }
 
     public override void Update()
@@ -179,7 +222,6 @@ class PlaylistConfigMenu : PositionedMenuObject
     private readonly TrackList availableTracksUi;
     private readonly TrackList activeTracksUi;
 
-    private readonly string[] availableTracks;
     private readonly List<string> activeTracks;
 
     public PlaylistConfigMenu(
@@ -190,6 +232,8 @@ class PlaylistConfigMenu : PositionedMenuObject
     )
         : base(menu, owner, pos)
     {
+        this.activeTracks = activeTracks;
+
         menu.tabWrapper = new Menu.Remix.MenuTabWrapper(menu, this);
         subObjects.Add(menu.tabWrapper);
 
@@ -220,6 +264,7 @@ class PlaylistConfigMenu : PositionedMenuObject
             size: new Vector2(200f, 400f)
         ));
 
+        // active songs track list
         subObjects.Add(activeTracksUi = new(
             menu: this.menu,
             owner: this,
@@ -230,9 +275,9 @@ class PlaylistConfigMenu : PositionedMenuObject
         foreach (var trackName in availableTracks)
         {
             if (activeTracks.Contains(trackName))
-                activeTracksUi.AddTrack(trackName);
+                activeTracksUi.AddTrack(trackName, "REMOVE_TRACK");
             else
-                availableTracksUi.AddTrack(trackName);
+                availableTracksUi.AddTrack(trackName, "ADD_TRACK");
         }
     }
 
@@ -246,6 +291,30 @@ class PlaylistConfigMenu : PositionedMenuObject
                 (menu as PlaylistConfigDialog).RequestClose();
                 menu.PlaySound(SoundID.MENU_Switch_Page_Out);
                 break;
+
+            case "ADD_TRACK":
+            {
+                if (sender is TrackButton trackButton)
+                {
+                    activeTracks.Add(trackButton.TrackName);
+                    availableTracksUi.RemoveTrack(trackButton.TrackName);
+                    activeTracksUi.AddTrack(trackButton.TrackName, "REMOVE_TRACK");
+                    menu.PlaySound(SoundID.MENU_Add_Level);
+                }
+                break;
+            }
+
+            case "REMOVE_TRACK":
+            {
+                if (sender is TrackButton trackButton)
+                {
+                    activeTracks.Remove(trackButton.TrackName);
+                    activeTracksUi.RemoveTrack(trackButton.TrackName);
+                    availableTracksUi.AddTrack(trackButton.TrackName, "ADD_TRACK");
+                    menu.PlaySound(SoundID.MENU_Remove_Level);
+                }
+                break;
+            }
         }
     }
 }
