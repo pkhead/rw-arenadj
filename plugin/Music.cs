@@ -12,10 +12,6 @@ namespace ArenaTunes
 {
     public partial class ModMain : BaseUnityPlugin
     {
-        // this prefix is used to differentiate custom songs
-        // from vanilla songs in the playlist
-        private const string CUSTOM_PREFIX = "[CUSTOM] ";
-
         private void MusicHooks()
         {
             // custom song loading
@@ -30,8 +26,8 @@ namespace ArenaTunes
                     // if (this.piece.isProcedural)
                     cursor.GotoNext(
                         x => x.MatchLdarg(0),
-                        x => x.MatchLdfld(typeof(Music.MusicPiece.SubTrack).GetField("piece")),
-                        x => x.MatchCallvirt(typeof(Music.MusicPiece).GetMethod("get_IsProcedural")),
+                        x => x.MatchLdfld(typeof(MusicPiece.SubTrack).GetField("piece")),
+                        x => x.MatchCallvirt(typeof(MusicPiece).GetMethod("get_IsProcedural")),
                         x => x.MatchBrfalse(out branch)
                     );
 
@@ -92,68 +88,7 @@ namespace ArenaTunes
             On.Music.MultiplayerDJ.ctor += (On.Music.MultiplayerDJ.orig_ctor orig, MultiplayerDJ self, MusicPlayer player) =>
             {
                 orig(self, player);
-                trackInfoDict.Clear();
-
-                // get custom songs
-                if (!Directory.Exists(Options.FolderPath.Value))
-                    return;
-                    
-                List<string> customSongs = new();
-
-                foreach (var filePath in Directory.EnumerateFiles(Options.FolderPath.Value))
-                {
-                    TrackInfo trackInfo = new()
-                    {
-                        fileName = Path.GetFileName(filePath)
-                    };
-                    
-                    switch (Path.GetExtension(filePath))
-                    {
-                        case ".ogg":
-                            trackInfo.audioType = AudioType.OGGVORBIS;
-                            break;
-
-                        case ".mp3": case ".mpeg":
-                            trackInfo.audioType = AudioType.MPEG;
-                            break;
-
-                        case ".wav":
-                            trackInfo.audioType = AudioType.WAV;
-                            break;
-
-                        default:
-                            continue; // file extension unknown, skip this file
-                    }
-                    
-                    string nameInList = CUSTOM_PREFIX + Path.GetFileNameWithoutExtension(filePath);
-                    trackInfoDict.Add(nameInList, trackInfo);
-                    customSongs.Add(nameInList);
-                }
-
-                // log all the found sounds
-                foreach (string filePath in customSongs)
-                {
-                    logger.LogDebug("Found " + filePath);
-                }
-
-                if (customSongs.Count > 0)
-                {
-                    // add to music playlist
-                    if (Options.CustomOnly.Value)
-                    {
-                        // replace list if Custom Only
-                        self.availableSongs = customSongs.ToArray();
-                    }
-                    else
-                    {
-                        // append to list
-                        var newList = new string[self.availableSongs.Length + customSongs.Count];
-                        self.availableSongs.CopyTo(newList, 0);
-                        customSongs.CopyTo(newList, self.availableSongs.Length);
-
-                        self.availableSongs = newList;
-                    }
-                }
+                self.availableSongs = activeTracks.ToArray();
             };
 
             // display author name if it is a custom song
@@ -177,22 +112,9 @@ namespace ArenaTunes
                 // show all text after the custom prefix
                 if (GetCustomSong(trackName, out _))
                 {
-                    self.announceSong = trackName.Substring(CUSTOM_PREFIX.Length);
+                    self.announceSong = trackName;
                 }
             };
-        }
-
-        private bool GetCustomSong(string trackName, out TrackInfo trackInfo)
-        {
-            // a track is a custom track if it starts with the CUSTOM_PREFIX
-            if (trackName.Substring(0, CUSTOM_PREFIX.Length) == CUSTOM_PREFIX)
-            {
-                trackInfo = trackInfoDict[trackName];
-                return true;
-            }
-
-            trackInfo = new();
-            return false;
         }
     }
 }

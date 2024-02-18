@@ -353,7 +353,18 @@ class PlaylistConfigMenu : PositionedMenuObject
         {
             case "BACK":
                 (menu as PlaylistConfigDialog).RequestClose();
+                ModMain.Instance.SavePlaylist();
+                
                 menu.PlaySound(SoundID.MENU_Switch_Page_Out);
+
+                // reset dj
+                var musicPlayer = menu.manager.musicPlayer;
+                if (musicPlayer.multiplayerDJ != null)
+                {
+                    var dj = musicPlayer.multiplayerDJ;
+                    dj.availableSongs = activeTracks.ToArray();
+                    dj.playList.Clear();
+                }
                 break;
 
             case "ADD_TRACK":

@@ -17,6 +17,8 @@ namespace ArenaTunes
     [BepInPlugin(MOD_ID, "Custom Arena DJ", VERSION)]
     public partial class ModMain : BaseUnityPlugin
     {
+        public static ModMain Instance;
+
         public const string MOD_ID = "pkhead.arenatunes";
         public const string AUTHOR = "pkhead";
         public const string VERSION = "1.2.0";
@@ -29,14 +31,19 @@ namespace ArenaTunes
         private string[] availableTracks = Array.Empty<string>();
         private readonly List<string> activeTracks = new();
 
+        public string GetPlaylistSavePath()
+            => Path.Combine(Path.GetDirectoryName(options.config.GetConfigPath()), "pkhead.arenatunes.playlist.txt");
+
         struct TrackInfo
         {
             public string fileName;
             public AudioType audioType;
         };
-        private Dictionary<string, TrackInfo> trackInfoDict = new();
+        private readonly Dictionary<string, TrackInfo> trackInfoDict = new();
 
-        public ModMain() { }
+        public ModMain() {
+            Instance = this;
+        }
 
         public void OnEnable()
         {
@@ -71,7 +78,7 @@ namespace ArenaTunes
                 {
                     availableTracks = Array.Empty<string>();
                     activeTracks.Clear();
-                    
+
                     logger.LogDebug("Scan tracks");
                     ScanTracks();
                 } catch (Exception e)
@@ -91,8 +98,6 @@ namespace ArenaTunes
                 logger.LogInfo($"Reading {mpMusicPath}...");
 
                 tracks = File.ReadLines(mpMusicPath).ToList();
-                activeTracks.Add(tracks[0]);
-
                 logger.LogInfo("Successfully loaded MPMusic.txt");
             }
             else
@@ -135,6 +140,38 @@ namespace ArenaTunes
             }
 
             availableTracks = tracks.ToArray();
+
+            // read playlist save
+            var savePath = GetPlaylistSavePath();
+            if (File.Exists(savePath))
+            {
+                logger.LogInfo("Loading playlist...");
+
+                foreach (var trackName in File.ReadLines(savePath))
+                {
+                    if (tracks.Contains(trackName))
+                        activeTracks.Add(trackName);
+                }
+            }
+            else
+            {
+                logger.LogInfo("Creating playlist...");
+
+                // file does not exist, so just add all available tracks
+                // to the playlist
+                activeTracks.AddRange(tracks);
+            }
+        }
+
+        private bool GetCustomSong(string trackName, out TrackInfo trackInfo)
+            => trackInfoDict.TryGetValue(trackName, out trackInfo);
+
+        public void SavePlaylist()
+        {
+            var savePath = GetPlaylistSavePath();
+            Debug.Log($"Save playlist data to {savePath}");
+
+            File.WriteAllLines(savePath, activeTracks);
         }
     }
 }
