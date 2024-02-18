@@ -66,7 +66,7 @@ class TrackButton : ButtonTemplate
         labelAlpha += (targetAlpha - labelAlpha) * 0.4f;
         
         // update position
-        pos = relativePos + Vector2.down * (owner as TrackList).ScrollOffset;
+        pos = Vector2.up * listOwner.size.y + relativePos + Vector2.up * listOwner.ScrollPixelOffset;
     }
 
     public override void GrafUpdate(float timeStacker)
@@ -93,19 +93,20 @@ class TrackList : RectangularMenuObject
 {
     private readonly FSprite[] sideBars = new FSprite[2];
     private int scrollInt = 0;
-    public float ScrollOffset { get => floatScrollPos; }
-    private float nextButtonPos = 0f;
+    public float ScrollPixelOffset { get => floatScrollPos; }
+    public int ScrollItemOffset { get => scrollInt; set => scrollInt = value; }
+    private float nextButtonPos = -ItemHeight;
     private int itemCount = 0;
     private float floatScrollPos = 0;
     private float floatScrollVel = 0;
     private const float ItemHeight = 20f;
 
     public float ViewMin {
-        get => floatScrollPos;
+        get => -floatScrollPos - size.y;
     }
 
     public float ViewMax {
-        get => floatScrollPos + size.y;
+        get => -floatScrollPos;
     }
 
     public TrackList(Menu.Menu menu, MenuObject owner, Vector2 pos, Vector2 size) : base(menu, owner, pos, size)
@@ -141,6 +142,16 @@ class TrackList : RectangularMenuObject
 
     public void AddTrack(string trackName, string signalText)
     {
+        int maxScrollValue = Custom.IntClamp(itemCount - (int)(size.y / ItemHeight), 0, itemCount);
+
+        // if user had already scrolled to the bottom of the list,
+        // scroll downwards when an item is added
+        if (scrollInt == maxScrollValue)
+        {
+            scrollInt++;
+        }
+
+        // add the button
         var btn = new TrackButton(
             menu: menu,
             owner: this,
@@ -149,7 +160,7 @@ class TrackList : RectangularMenuObject
             pos: new Vector2(0f, nextButtonPos),
             size: new Vector2(size.x, ItemHeight)
         );
-        nextButtonPos += btn.size.y;
+        nextButtonPos -= btn.size.y;
         subObjects.Add(btn);
         itemCount++;
     }
@@ -168,12 +179,12 @@ class TrackList : RectangularMenuObject
                     subObjects.RemoveAt(i);
                     trackButton.RemoveSprites();
                     page.selectables.Remove(trackButton);
-                    nextButtonPos -= trackButton.size.y;
+                    nextButtonPos += trackButton.size.y;
                     itemCount--;
                 }
                 else
                 {
-                    trackButton.RelativePos.y -= shiftY;
+                    trackButton.RelativePos.y += shiftY;
                     i++;
                 }
             }
@@ -187,7 +198,7 @@ class TrackList : RectangularMenuObject
         if (MouseOver && menu.manager.menuesMouseMode && menu.mouseScrollWheelMovement != 0)
         {
             Debug.Log(menu.mouseScrollWheelMovement);
-            scrollInt -= menu.mouseScrollWheelMovement * 4;
+            scrollInt += menu.mouseScrollWheelMovement * 4;
         }
 
         // clamp scroll
@@ -279,6 +290,9 @@ class PlaylistConfigMenu : PositionedMenuObject
             else
                 availableTracksUi.AddTrack(trackName, "ADD_TRACK");
         }
+
+        availableTracksUi.ScrollItemOffset = 0;
+        activeTracksUi.ScrollItemOffset = 0;
     }
 
     public override void Singal(MenuObject sender, string message)
