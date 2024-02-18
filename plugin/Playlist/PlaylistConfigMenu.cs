@@ -115,7 +115,7 @@ class TrackList : RectangularMenuObject
         {
             anchorX = 0,
             anchorY = 0,
-            scaleX = 1f,
+            scaleX = 2f,
             scaleY = size.y,
             color = new Color(1f, 1f, 1f, 1f),
         };
@@ -124,7 +124,7 @@ class TrackList : RectangularMenuObject
         {
             anchorX = 0,
             anchorY = 0,
-            scaleX = 1f,
+            scaleX = 2f,
             scaleY = size.y,
             color = new Color(1f, 1f, 1f, 1f)
         };
@@ -157,8 +157,8 @@ class TrackList : RectangularMenuObject
             owner: this,
             trackName: trackName,
             signalText: signalText,
-            pos: new Vector2(0f, nextButtonPos),
-            size: new Vector2(size.x, ItemHeight)
+            pos: new Vector2(2f, nextButtonPos),
+            size: new Vector2(size.x - 4f, ItemHeight)
         );
         nextButtonPos -= btn.size.y;
         subObjects.Add(btn);
@@ -187,6 +187,36 @@ class TrackList : RectangularMenuObject
                     trackButton.RelativePos.y += shiftY;
                     i++;
                 }
+            }
+        }
+    }
+
+    public List<TrackButton> GetItems()
+    {
+        List<TrackButton> buttons = new();
+
+        foreach (var item in subObjects)
+        {
+            if (item is TrackButton trackButton)
+                buttons.Add(trackButton);
+        }
+
+        return buttons;
+    }
+
+    public void Clear()
+    {
+        nextButtonPos = -ItemHeight;
+        scrollInt = 0;
+        itemCount = 0;
+
+        for (int i = subObjects.Count - 1; i >= 0; i--)
+        {
+            if (subObjects[i] is TrackButton trackButton)
+            {
+                subObjects.RemoveAt(i);
+                trackButton.RemoveSprites();
+                page.selectables.Remove(trackButton);
             }
         }
     }
@@ -224,7 +254,7 @@ class TrackList : RectangularMenuObject
 
         // maintain sidebar positions
         sideBars[0].SetPosition(ScreenPos);
-        sideBars[1].SetPosition(ScreenPos + Vector2.right * (size.x - 1f));
+        sideBars[1].SetPosition(ScreenPos + Vector2.right * (size.x - 2f));
     }
 }
 
@@ -261,7 +291,7 @@ class PlaylistConfigMenu : PositionedMenuObject
         // back button
         subObjects.Add(new SimpleButton(
             this.menu, this,
-            displayText: "BACK",
+            displayText: "DONE",
             singalText: "BACK",
             pos: new(200f, 50f),
             size: new Vector2(110f, 30f)
@@ -272,7 +302,7 @@ class PlaylistConfigMenu : PositionedMenuObject
             menu: this.menu,
             owner: this,
             pos: new Vector2(463f, 100f),
-            size: new Vector2(200f, 400f)
+            size: new Vector2(200f, 500f)
         ));
 
         // active songs track list
@@ -280,7 +310,27 @@ class PlaylistConfigMenu : PositionedMenuObject
             menu: this.menu,
             owner: this,
             pos: new Vector2(703f, 100f),
-            size: new Vector2(200f, 400f)
+            size: new Vector2(200f, 500f)
+        ));
+
+        // add all button
+        subObjects.Add(new SimpleButton(
+            menu: this.menu,
+            owner: this,
+            displayText: "ADD ALL",
+            singalText: "ADD_ALL",
+            pos: new Vector2(463f, 50f),
+            size: new Vector2(100f, 30f)
+        ));
+
+        // remove all button
+        subObjects.Add(new SimpleButton(
+            menu: this.menu,
+            owner: this,
+            displayText: "CLEAR PLAYLIST",
+            singalText: "REMOVE_ALL",
+            pos: new Vector2(703f, 50f),
+            size: new Vector2(110f, 30f)
         ));
 
         foreach (var trackName in availableTracks)
@@ -327,6 +377,34 @@ class PlaylistConfigMenu : PositionedMenuObject
                     availableTracksUi.AddTrack(trackButton.TrackName, "ADD_TRACK");
                     menu.PlaySound(SoundID.MENU_Remove_Level);
                 }
+                break;
+            }
+
+            case "ADD_ALL":
+            {
+                menu.PlaySound(SoundID.MENU_Add_Level);
+                
+                foreach (var trackButton in availableTracksUi.GetItems())
+                {
+                    activeTracks.Add(trackButton.TrackName);
+                    activeTracksUi.AddTrack(trackButton.TrackName, "REMOVE_TRACK");
+                }
+
+                availableTracksUi.Clear();
+                break;
+            }
+
+            case "REMOVE_ALL":
+            {
+                menu.PlaySound(SoundID.MENU_Remove_Level);
+                
+                foreach (var trackButton in activeTracksUi.GetItems())
+                {
+                    activeTracks.Remove(trackButton.TrackName);
+                    availableTracksUi.AddTrack(trackButton.TrackName, "ADD_TRACK");
+                }
+
+                activeTracksUi.Clear();
                 break;
             }
         }
