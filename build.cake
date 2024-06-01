@@ -21,7 +21,9 @@ Task("Build")
     CleanDirectory("./out");
     CopyDirectory("./assets", "./out");
     CreateDirectory("./out/plugins");
+    
     CopyFile($"./plugin/bin/{configuration}/net48/arenatunes.dll", "./out/plugins/ArenaTunes.dll");
+    CopyFile($"./plugin/bin/{configuration}/net48/arenatunes.pdb", "./out/plugins/ArenaTunes.pdb");
 });
 
 Task("Install")

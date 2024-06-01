@@ -30,6 +30,28 @@ class PlaylistConfigDialog : Dialog
         pages[0].subObjects.Add(slidingMenu);
     }
 
+    public override string UpdateInfoText()
+    {
+        // the Menu constructor calls UpdateInfoText, so
+        // slidingMenu will be uninitialized in the function call.
+        if (slidingMenu is null) return base.UpdateInfoText();
+
+        if (selectedObject == slidingMenu.backButton)
+        {
+            return "";
+        }
+        else if (selectedObject == slidingMenu.addAllButton)
+        {
+            return "Add all available songs to the playlist";
+        }
+        else if (selectedObject == slidingMenu.removeAllButton)
+        {
+            return "Clear the playlist";
+        }
+
+        return base.UpdateInfoText();
+    }
+
     public override void Update()
     {
         base.Update();

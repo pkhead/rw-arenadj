@@ -265,6 +265,10 @@ class PlaylistConfigMenu : PositionedMenuObject
 
     private readonly List<string> activeTracks;
 
+    public readonly SimpleButton backButton;
+    public readonly SimpleButton addAllButton;
+    public readonly SimpleButton removeAllButton;
+
     public PlaylistConfigMenu(
         PlaylistConfigDialog menu, MenuObject owner,
         Vector2 pos,
@@ -279,17 +283,17 @@ class PlaylistConfigMenu : PositionedMenuObject
         subObjects.Add(menu.tabWrapper);
 
         // main label
-        subObjects.Add(new MenuLabel(
+        /*subObjects.Add(new MenuLabel(
             menu: this.menu,
             owner: this,
             text: "DJ Playlist",
             pos: new Vector2(110f, menu.manager.rainWorld.options.ScreenSize.y - 100f),
             size: default,
             bigText: true
-        ));
+        ));*/
 
         // back button
-        subObjects.Add(new SimpleButton(
+        subObjects.Add(backButton = new SimpleButton(
             this.menu, this,
             displayText: "DONE",
             singalText: "BACK",
@@ -297,42 +301,63 @@ class PlaylistConfigMenu : PositionedMenuObject
             size: new Vector2(110f, 30f)
         ));
 
+        // available songs track list label
+        subObjects.Add(new MenuLabel(
+            menu: this.menu,
+            owner: this,
+            text: "AVAILABLE",
+            pos: new Vector2(563f, 400f + 216f),
+            size: default,
+            bigText: false
+        ));
+
         // available songs track list
         subObjects.Add(availableTracksUi = new(
             menu: this.menu,
             owner: this,
-            pos: new Vector2(463f, 100f),
-            size: new Vector2(200f, 500f)
+            pos: new Vector2(463f, 216f),
+            size: new Vector2(200f, 400f - 15f)
+        ));
+
+        // active songs track list label
+        subObjects.Add(new MenuLabel(
+            menu: this.menu,
+            owner: this,
+            text: "ACTIVE",
+            pos: new Vector2(803f, 400f + 216f),
+            size: default,
+            bigText: false
         ));
 
         // active songs track list
         subObjects.Add(activeTracksUi = new(
             menu: this.menu,
             owner: this,
-            pos: new Vector2(703f, 100f),
-            size: new Vector2(200f, 500f)
+            pos: new Vector2(703f, 216f),
+            size: new Vector2(200f, 400f - 15f)
         ));
 
         // add all button
-        subObjects.Add(new SimpleButton(
+        subObjects.Add(addAllButton = new SimpleButton(
             menu: this.menu,
             owner: this,
             displayText: "ADD ALL",
             singalText: "ADD_ALL",
-            pos: new Vector2(463f, 50f),
+            pos: new Vector2(463f, 216f - 45f),
             size: new Vector2(100f, 30f)
         ));
 
         // remove all button
-        subObjects.Add(new SimpleButton(
+        subObjects.Add(removeAllButton = new SimpleButton(
             menu: this.menu,
             owner: this,
             displayText: "CLEAR PLAYLIST",
             singalText: "REMOVE_ALL",
-            pos: new Vector2(703f, 50f),
+            pos: new Vector2(703f, 216f - 45f),
             size: new Vector2(110f, 30f)
         ));
 
+        // add the track items
         foreach (var trackName in availableTracks)
         {
             if (activeTracks.Contains(trackName))

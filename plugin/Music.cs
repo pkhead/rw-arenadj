@@ -94,6 +94,16 @@ namespace ArenaTunes
             // display author name if it is a custom song
             On.Music.MultiplayerDJ.PlayNext += (On.Music.MultiplayerDJ.orig_PlayNext orig, Music.MultiplayerDJ self, float fadeInTime) =>
             {
+                // refrains from calling orig if there are no songs
+                // doing so would cause an error...
+                if (self.availableSongs.Length == 0)
+                {
+                    self.firstSong = false;
+                    return;
+                }
+                
+                // if option to show author name is disabled,
+                // no manual processing is needed
                 if (!Options.AuthorName.Value)
                 {
                     orig(self, fadeInTime);
@@ -110,7 +120,7 @@ namespace ArenaTunes
 
                 // if this is a custom song,
                 // show all text after the custom prefix
-                if (GetCustomSong(trackName, out _))
+                if (trackName is not null && GetCustomSong(trackName, out _))
                 {
                     self.announceSong = trackName;
                 }
