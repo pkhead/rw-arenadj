@@ -10,7 +10,6 @@ namespace ArenaTunes
         private readonly BepInEx.Logging.ManualLogSource logger;
 
         public static Configurable<string> FolderPath = null;
-        public static Configurable<bool> CustomOnly = null;
         public static Configurable<bool> AuthorName = null;
 
         public Options(ModMain mod)
@@ -22,17 +21,6 @@ namespace ArenaTunes
                 defaultValue: Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyMusic), "RWArenaMusic"),
                 info: new ConfigurableInfo(
                     "The path to the folder containing custom tracks"
-                )
-            );
-
-            CustomOnly = config.Bind(
-                key: "customOnly",
-                defaultValue: false,
-                info: new ConfigurableInfo(
-                    "Only play custom tracks registered with this mod",
-                    null,
-                    "",
-                    "CustomOnly"
                 )
             );
 
@@ -60,7 +48,6 @@ namespace ArenaTunes
             Title("Arena DJ");
             folderTextbox = AddTextbox("Music Folder", "The path to the folder containing the custom tracks", FolderPath, 400);
             existsLabel = AddLabel("Folder does not exist!");
-            AddCheckbox("Custom only", "Only play custom tracks registered with this mod", CustomOnly);
             AddCheckbox("Author Name", "Show author name when playing a custom track", AuthorName);
             
             CheckExists();
@@ -72,9 +59,13 @@ namespace ArenaTunes
             CheckExists();
         }
 
+        private static string lastFolderName = "";
+
         private void CheckExists()
         {
             if (existsLabel == null || folderTextbox == null) return;
+            if (folderTextbox.value == lastFolderName) return;
+            lastFolderName = folderTextbox.value;
             
             if (Directory.Exists(folderTextbox.value))
             {
