@@ -28,8 +28,8 @@ namespace ArenaTunes
         public BepInEx.Logging.ManualLogSource logger;
         public Options options;
 
-        private string[] availableTracks = Array.Empty<string>();
-        private readonly List<string> activeTracks = new();
+        public string[] availableTracks = Array.Empty<string>();
+        public readonly List<string> activeTracks = new();
 
         public string GetPlaylistSavePath()
             => Path.Combine(Path.GetDirectoryName(options.config.GetConfigPath()), "pkhead.arenatunes.playlist.txt");
@@ -76,11 +76,8 @@ namespace ArenaTunes
                 
                 try
                 {
-                    availableTracks = Array.Empty<string>();
-                    activeTracks.Clear();
-
                     logger.LogDebug("Scan tracks");
-                    ScanTracks();
+                    ScanTracks(true);
                 } catch (Exception e)
                 {
                     logger.LogError(e);
@@ -88,8 +85,9 @@ namespace ArenaTunes
             };
         }
 
-        private void ScanTracks()
+        public void ScanTracks(bool overwriteFromSave)
         {
+            trackInfoDict.Clear();
             List<string> tracks;
 
             var mpMusicPath = AssetManager.ResolveFilePath(Path.Combine("Music", "MPMusic.txt"));
@@ -141,25 +139,39 @@ namespace ArenaTunes
 
             availableTracks = tracks.ToArray();
 
-            // read playlist save
-            var savePath = GetPlaylistSavePath();
-            if (File.Exists(savePath))
+            if (overwriteFromSave)
             {
-                logger.LogInfo("Loading playlist...");
+                // read playlist save
+                activeTracks.Clear();
 
-                foreach (var trackName in File.ReadLines(savePath))
+                var savePath = GetPlaylistSavePath();
+                if (File.Exists(savePath))
                 {
-                    if (tracks.Contains(trackName))
-                        activeTracks.Add(trackName);
+                    logger.LogInfo("Loading playlist...");
+
+                    foreach (var trackName in File.ReadLines(savePath))
+                    {
+                        if (tracks.Contains(trackName))
+                            activeTracks.Add(trackName);
+                    }
+                }
+                else
+                {
+                    logger.LogInfo("Creating playlist...");
+
+                    // file does not exist, so just add all available tracks
+                    // to the playlist
+                    activeTracks.AddRange(tracks);
                 }
             }
             else
             {
-                logger.LogInfo("Creating playlist...");
-
-                // file does not exist, so just add all available tracks
-                // to the playlist
-                activeTracks.AddRange(tracks);
+                // remove active tracks that are no longer in the available tracks list
+                for (int i = activeTracks.Count - 1; i >= 0; i--)
+                {
+                    if (!tracks.Contains(activeTracks[i]))
+                        activeTracks.RemoveAt(i);
+                }
             }
         }
 

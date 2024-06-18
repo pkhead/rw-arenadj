@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Menu;
@@ -95,11 +96,10 @@ class TrackList : RectangularMenuObject
     private int scrollInt = 0;
     public float ScrollPixelOffset { get => floatScrollPos; }
     public int ScrollItemOffset { get => scrollInt; set => scrollInt = value; }
-    private float nextButtonPos = -ItemHeight;
-    private int itemCount = 0;
     private float floatScrollPos = 0;
     private float floatScrollVel = 0;
     private const float ItemHeight = 20f;
+    public readonly List<TrackButton> trackButtons = new();
 
     public float ViewMin {
         get => -floatScrollPos - size.y;
@@ -140,8 +140,10 @@ class TrackList : RectangularMenuObject
         sideBars[1].RemoveFromContainer();
     }
 
-    public void AddTrack(string trackName, string signalText)
+    public void AddTrack(string trackName, string signalText) => AddTrackAt(trackName, trackButtons.Count, signalText);
+    public void AddTrackAt(string trackName, int index, string signalText)
     {
+        var itemCount = trackButtons.Count;
         int maxScrollValue = Custom.IntClamp(itemCount - (int)(size.y / ItemHeight), 0, itemCount);
 
         // if user had already scrolled to the bottom of the list,
@@ -157,68 +159,64 @@ class TrackList : RectangularMenuObject
             owner: this,
             trackName: trackName,
             signalText: signalText,
-            pos: new Vector2(2f, nextButtonPos),
+            pos: new Vector2(2f, (index+1) * -ItemHeight),
             size: new Vector2(size.x - 4f, ItemHeight)
         );
-        nextButtonPos -= btn.size.y;
         subObjects.Add(btn);
-        itemCount++;
+
+        // shift all following track buttons downward before inserting
+        for (int i = index; i < itemCount; i++)
+        {
+            trackButtons[i].pos.y -= ItemHeight;
+        }
+        trackButtons.Insert(index, btn);
     }
 
     public void RemoveTrack(string trackName)
     {
-        float shiftY = 0.0f;
-
-        for (int i = 0; i < subObjects.Count;)
+        int trackIndex = -1;
+        for (int i = 0; i < trackButtons.Count; i++)
         {
-            if (subObjects[i] is TrackButton trackButton)
+            if (trackButtons[i].TrackName == trackName)
             {
-                if (trackButton.TrackName == trackName)
-                {
-                    shiftY = trackButton.size.y;
-                    subObjects.RemoveAt(i);
-                    trackButton.RemoveSprites();
-                    page.selectables.Remove(trackButton);
-                    nextButtonPos += trackButton.size.y;
-                    itemCount--;
-                }
-                else
-                {
-                    trackButton.RelativePos.y += shiftY;
-                    i++;
-                }
+                trackIndex = i;
+                break;
             }
         }
-    }
 
-    public List<TrackButton> GetItems()
-    {
-        List<TrackButton> buttons = new();
+        // track was not found in list
+        if (trackIndex == -1) return;
 
-        foreach (var item in subObjects)
+        // shift all following track buttons upward before removing
+        for (int i = trackButtons.Count - 1; i >= 0; i--)
         {
-            if (item is TrackButton trackButton)
-                buttons.Add(trackButton);
-        }
+            var trackButton = trackButtons[i];
 
-        return buttons;
+            if (i == trackIndex)
+            {
+                subObjects.Remove(trackButton);
+                trackButton.RemoveSprites();
+                page.selectables.Remove(trackButton);
+                trackButtons.RemoveAt(i);
+                break;
+            }
+
+            trackButton.RelativePos.y += ItemHeight;
+        }
     }
 
     public void Clear()
     {
-        nextButtonPos = -ItemHeight;
         scrollInt = 0;
-        itemCount = 0;
 
-        for (int i = subObjects.Count - 1; i >= 0; i--)
+        foreach (var button in trackButtons)
         {
-            if (subObjects[i] is TrackButton trackButton)
-            {
-                subObjects.RemoveAt(i);
-                trackButton.RemoveSprites();
-                page.selectables.Remove(trackButton);
-            }
+            subObjects.Remove(button);
+            button.RemoveSprites();
+            page.selectables.Remove(button);
         }
+
+        trackButtons.Clear();
     }
 
     public override void Update()
@@ -232,6 +230,7 @@ class TrackList : RectangularMenuObject
         }
 
         // clamp scroll
+        int itemCount = trackButtons.Count;
         int maxScrollValue = Custom.IntClamp(itemCount - (int)(size.y / ItemHeight), 0, itemCount);
         scrollInt = Custom.IntClamp(scrollInt, 0, maxScrollValue);
 
@@ -263,21 +262,20 @@ class PlaylistConfigMenu : PositionedMenuObject
     private readonly TrackList availableTracksUi;
     private readonly TrackList activeTracksUi;
 
-    private readonly List<string> activeTracks;
+    private List<string> availableTracks;
 
     public readonly SimpleButton backButton;
     public readonly SimpleButton addAllButton;
+    public readonly SimpleButton rescanButton;
     public readonly SimpleButton removeAllButton;
 
     public PlaylistConfigMenu(
         PlaylistConfigDialog menu, MenuObject owner,
-        Vector2 pos,
-        string[] availableTracks,
-        List<string> activeTracks
+        Vector2 pos
     )
         : base(menu, owner, pos)
     {
-        this.activeTracks = activeTracks;
+        this.availableTracks = new List<string>(ModMain.Instance.availableTracks);
 
         menu.tabWrapper = new Menu.Remix.MenuTabWrapper(menu, this);
         subObjects.Add(menu.tabWrapper);
@@ -344,7 +342,17 @@ class PlaylistConfigMenu : PositionedMenuObject
             displayText: "ADD ALL",
             singalText: "ADD_ALL",
             pos: new Vector2(463f, 216f - 45f),
-            size: new Vector2(100f, 30f)
+            size: new Vector2(95f, 30f)
+        ));
+
+        // rescan button
+        subObjects.Add(rescanButton = new SimpleButton(
+            menu: this.menu,
+            owner: this,
+            displayText: "RESCAN",
+            singalText: "RESCAN",
+            pos: new Vector2(463f + 200f - 95f, 216f - 45f),
+            size: new Vector2(95f, 30f)
         ));
 
         // remove all button
@@ -358,11 +366,16 @@ class PlaylistConfigMenu : PositionedMenuObject
         ));
 
         // add the track items
+        var activeTracks = ModMain.Instance.activeTracks;
+
+        foreach (var trackName in activeTracks)
+        {
+            activeTracksUi.AddTrack(trackName, "REMOVE_TRACK");
+        }
+
         foreach (var trackName in availableTracks)
         {
-            if (activeTracks.Contains(trackName))
-                activeTracksUi.AddTrack(trackName, "REMOVE_TRACK");
-            else
+            if (!activeTracks.Contains(trackName))
                 availableTracksUi.AddTrack(trackName, "ADD_TRACK");
         }
 
@@ -373,6 +386,8 @@ class PlaylistConfigMenu : PositionedMenuObject
     public override void Singal(MenuObject sender, string message)
     {
         base.Singal(sender, message);
+
+        var activeTracks = ModMain.Instance.activeTracks;
 
         switch (message)
         {
@@ -420,7 +435,7 @@ class PlaylistConfigMenu : PositionedMenuObject
             {
                 menu.PlaySound(SoundID.MENU_Add_Level);
                 
-                foreach (var trackButton in availableTracksUi.GetItems())
+                foreach (var trackButton in availableTracksUi.trackButtons)
                 {
                     activeTracks.Add(trackButton.TrackName);
                     activeTracksUi.AddTrack(trackButton.TrackName, "REMOVE_TRACK");
@@ -430,11 +445,59 @@ class PlaylistConfigMenu : PositionedMenuObject
                 break;
             }
 
+            case "RESCAN":
+            {
+                // remove/add individual elements to the availableTracks list
+                // so that it matches newList
+                ModMain.Instance.ScanTracks(false);
+                string[] newList = ModMain.Instance.availableTracks;
+                bool didChange = false;
+
+                // remove songs that no logner exist in newList
+                for (int i = availableTracks.Count - 1; i >= 0; i--)
+                {
+                    if (!newList.Contains(availableTracks[i]))
+                    {
+                        didChange = true;
+                        availableTracksUi.RemoveTrack(availableTracks[i]);
+                        availableTracks.RemoveAt(i);
+                    }
+                }
+
+                // add the new songs
+                for (int i = 0; i < newList.Length; i++)
+                {
+                    if (!availableTracks.Contains(newList[i]))
+                    {
+                        didChange = true;
+                        availableTracksUi.AddTrack(newList[i], "ADD_TRACK");
+                        availableTracks.Add(newList[i]);
+                    }
+                }
+
+                // remove active songs that no longer exist
+                for (int i = activeTracksUi.trackButtons.Count - 1; i >= 0; i--)
+                {
+                    var btn = activeTracksUi.trackButtons[i];
+                    if (!activeTracks.Contains(btn.TrackName))
+                    {
+                        activeTracksUi.RemoveTrack(btn.TrackName);
+                    }
+                }
+
+                if (didChange)
+                {
+                    menu.PlaySound(SoundID.MENU_Add_Level);
+                }
+
+                break;
+            }
+
             case "REMOVE_ALL":
             {
                 menu.PlaySound(SoundID.MENU_Remove_Level);
                 
-                foreach (var trackButton in activeTracksUi.GetItems())
+                foreach (var trackButton in activeTracksUi.trackButtons)
                 {
                     activeTracks.Remove(trackButton.TrackName);
                     availableTracksUi.AddTrack(trackButton.TrackName, "ADD_TRACK");
