@@ -45,5 +45,13 @@
 		<Reference Include="$(RainWorldDir)/RainWorld_Data/Managed/UnityEngine.AudioModule.dll">
 			<Private>true</Private>
 		</Reference>
+
+		<Reference Include="$(RainWorldDir)/RainWorld_Data/Managed/UnityEngine.UnityWebRequestModule.dll">
+			<Private>true</Private>
+		</Reference>
+
+		<Reference Include="$(RainWorldDir)/RainWorld_Data/Managed/UnityEngine.UnityWebRequestAudioModule.dll">
+			<Private>true</Private>
+		</Reference>
 	</ItemGroup>
 </Project>

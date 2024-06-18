@@ -5,13 +5,36 @@ using System;
 using Music;
 using UnityEngine;
 using System.IO;
-using RWCustom;
-using System.Collections.Generic;
+using UnityEngine.Networking;
+using System.Runtime.CompilerServices;
 
 namespace ArenaTunes
 {
     public partial class ModMain : BaseUnityPlugin
     {
+        private ConditionalWeakTable<MusicPiece.SubTrack, UnityWebRequest> loadingAudioClips = new();
+
+        private UnityEngine.AudioClip SafeWWWAudioClipNonBlocking(string path, bool threeD, bool stream, AudioType audioType, out UnityWebRequest request)
+        {
+            UnityWebRequest audioClip = UnityWebRequestMultimedia.GetAudioClip(path, audioType);
+            var handler = (DownloadHandlerAudioClip)audioClip.downloadHandler;
+            handler.streamAudio = true;
+
+            audioClip.SendWebRequest();
+            if (audioClip.isDone)
+            {
+                AudioClip content = DownloadHandlerAudioClip.GetContent(audioClip);
+
+                request = null;
+                return content;
+            }
+            else
+            {
+                request = audioClip;
+                return null;
+            }
+        }
+
         private void MusicHooks()
         {
             // custom song loading
@@ -51,10 +74,20 @@ namespace ArenaTunes
                             return false;
                         }
 
-                        self.source.clip = AssetManager.SafeWWWAudioClip("file://" + filePath, false, true, trackInfo.audioType);
-                        self.isStreamed = true;
-
-                        Debug.Log("loaded custom arena track!");
+                        var clip = SafeWWWAudioClipNonBlocking("file://" + filePath, false, true, trackInfo.audioType, out UnityWebRequest request);
+                        if (clip is not null)
+                        {
+                            self.source.clip = clip;
+                            self.isStreamed = true;
+                            Debug.Log("loaded custom arena track!");
+                        }
+                        else
+                        {
+                            // audio has to load...
+                            loadingAudioClips.Add(self, request);
+                            self.readyToPlay = false;
+                            Debug.Log("async load track");
+                        }
 
                         return true;
                     });
@@ -82,6 +115,33 @@ namespace ArenaTunes
                 {
                     logger.LogFatal(e);
                 }
+            };
+
+            On.Music.MusicPiece.SubTrack.Update += (On.Music.MusicPiece.SubTrack.orig_Update orig, MusicPiece.SubTrack self) =>
+            {
+                // check on request, if it exists
+                if (loadingAudioClips.TryGetValue(self, out UnityWebRequest request))
+                {
+                    if (request.isDone)
+                    {
+                        loadingAudioClips.Remove(self);
+
+                        AudioClip content = DownloadHandlerAudioClip.GetContent(request);
+                        request.Dispose();
+                        
+                        self.source.clip = content;
+                        self.isStreamed = true;
+
+                        Debug.Log("async load done!");
+                    }
+                    else
+                    {
+                        // wait until request is done...
+                        return;
+                    }
+                }
+
+                orig(self);
             };
 
             // hijack DJ
